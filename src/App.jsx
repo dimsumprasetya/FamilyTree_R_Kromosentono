@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, ZoomIn, ZoomOut, X, Camera, Users, User, RotateCcw } from 'lucide-react';
 
-// ─── DATA ────────────────────────────────────────────────────────────────────
 const INITIAL_DATA = [
   { id: 'root',       name: 'R. Kromosentono',              note: 'Kanjeng Sinuhun Mangkunegara Djawi', spouse: '', parentId: null },
   { id: 'g1_1',       name: 'R. Wasidi',                    note: '', spouse: '', parentId: 'root' },
@@ -130,7 +129,6 @@ const TREE_CSS = `
   @media (max-width: 480px) { .mc { width: 78px; } .mc-photo { height: 72px; } .mc-name { font-size: 8px; } .td-vbar { height: 18px; } .td-col { padding: 0 3px; } .tree-canvas { padding: 28px 28px 72px; } }
 `;
 
-// ─── TREE NODE (Corrected & Optimized) ───────────────────────────────────────
 const TreeNode = memo(({
   node, childrenMap, depths, photos, searchQuery,
   onPhotoClick, onAdd, onEdit, onDelete,
@@ -145,9 +143,9 @@ const TreeNode = memo(({
     <div className="td-sub">
       <div className={`mc${isHL ? ' hl' : ''}`} style={{ borderTop: `3px solid ${accentColor}` }}>
         <div className="mc-actions">
-          <button className="mc-act a-add" onClick={() => onAdd(node.id)} title="Tambah anak"><Plus size={11}/></button>
-          <button className="mc-act a-edit" onClick={() => onEdit(node)} title="Edit"><Edit2 size={11}/></button>
-          {node.id !== 'root' && <button className="mc-act a-del" onClick={() => onDelete(node.id)} title="Hapus"><Trash2 size={11}/></button>}
+          <button className="mc-act a-add" onClick={() => onAdd(node.id)}><Plus size={11}/></button>
+          <button className="mc-act a-edit" onClick={() => onEdit(node)}><Edit2 size={11}/></button>
+          {node.id !== 'root' && <button className="mc-act a-del" onClick={() => onDelete(node.id)}><Trash2 size={11}/></button>}
         </div>
         <div className="mc-inner">
           <div className="mc-photo" onClick={() => onPhotoClick(node.id)}>
@@ -184,7 +182,6 @@ const TreeNode = memo(({
   );
 });
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
 const DeleteModal = memo(({ name, onConfirm, onCancel }) => (
   <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
     <div className="bg-[#1c1917] border border-[#44403c] rounded-2xl shadow-2xl w-full max-w-[300px] p-6">
@@ -212,7 +209,6 @@ const Field = ({ label, required, children }) => (
 );
 const inputCls = `w-full px-3 py-2 bg-[#292524] border border-[#44403c] rounded-xl text-xs text-stone-200 placeholder-stone-600 focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all`;
 
-// ─── MAIN APP ────────────────────────────────────────────────────────────────
 export default function FamilyTreeApp() {
   const [members, setMembers] = useState(INITIAL_DATA);
   const [photos, setPhotos] = useState({});

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, ZoomIn, ZoomOut, X, Camera, Users, User, RotateCcw } from 'lucide-react';
 
-// ─── DATA (Sama seperti sebelumnya) ──────────────────────────────────────────
+// ─── DATA ────────────────────────────────────────────────────────────────────
 const INITIAL_DATA = [
   { id: 'root',       name: 'R. Kromosentono',              note: 'Kanjeng Sinuhun Mangkunegara Djawi', spouse: '', parentId: null },
   { id: 'g1_1',       name: 'R. Wasidi',                    note: '', spouse: '', parentId: 'root' },
@@ -130,76 +130,8 @@ const TREE_CSS = `
   @media (max-width: 480px) { .mc { width: 78px; } .mc-photo { height: 72px; } .mc-name { font-size: 8px; } .td-vbar { height: 18px; } .td-col { padding: 0 3px; } .tree-canvas { padding: 28px 28px 72px; } }
 `;
 
-// ─── TREE NODE (Optimized) ────────────────────────────────────────────────────
+// ─── TREE NODE (Corrected & Optimized) ───────────────────────────────────────
 const TreeNode = memo(({
-  node, children, depth, photos, searchQuery,
-  onPhotoClick, onAdd, onEdit, onDelete,
-}) => {
-  const accentColor = GEN_COLORS[depth % GEN_COLORS.length];
-  const isHL = searchQuery.trim() !== '' &&
-    node.name.toLowerCase().includes(searchQuery.toLowerCase());
-  const photo = photos[node.id];
-
-  return (
-    <div className="td-sub">
-      <div className={`mc${isHL ? ' hl' : ''}`} style={{ borderTop: `3px solid ${accentColor}` }}>
-        <div className="mc-actions">
-          <button className="mc-act a-add" onClick={() => onAdd(node.id)} title="Tambah anak"><Plus size={11}/></button>
-          <button className="mc-act a-edit" onClick={() => onEdit(node)} title="Edit"><Edit2 size={11}/></button>
-          {node.id !== 'root' && (
-            <button className="mc-act a-del" onClick={() => onDelete(node.id)} title="Hapus"><Trash2 size={11}/></button>
-          )}
-        </div>
-        <div className="mc-inner">
-          <div className="mc-photo" onClick={() => onPhotoClick(node.id)}>
-            {photo ? <img src={photo} alt={node.name}/> : (
-                <div className="mc-placeholder"><Camera size={18}/><span>Tambah Foto</span></div>
-            )}
-            <div className="mc-photo-overlay"><Camera size={14}/><span>Ganti Foto</span></div>
-            <div className="mc-leaf" style={{ background: accentColor }}/>
-          </div>
-          <div className="mc-info">
-            <div className="mc-name">{node.name}</div>
-            {node.note && <div className="mc-note">{node.note}</div>}
-            {node.spouse && <div className="mc-spouse">♥ {node.spouse}</div>}
-            {children && children.length > 0 && (
-              <div className="mc-childcount">{children.length} keturunan ▾</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {children && children.length > 0 && (
-        <>
-          <div className="td-vbar"/>
-          <div className="td-row">
-            {children.map(child => (
-              <div className="td-col" key={child.id}>
-                <div className="td-vbar"/>
-                {/* Note: We pass children from the pre-computed map here */}
-                <TreeNode
-                  node={child} 
-                  children={/* child's children will be passed from parent's logic in main app */}
-                    null 
-                  }
-                  // This is a bit tricky with memo, we'll handle this via a helper in the main app
-                  // to avoid passing the whole map.
-                  depth={depth + 1}
-                  photos={photos} searchQuery={searchQuery}
-                  onPhotoClick={onPhotoClick}
-                  onAdd={onAdd} onEdit={onEdit} onDelete={onDelete}
-                />
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-});
-
-// Fixed TreeNode to use childrenMap correctly
-const TreeNodeFixed = memo(({
   node, childrenMap, depths, photos, searchQuery,
   onPhotoClick, onAdd, onEdit, onDelete,
 }) => {
@@ -238,7 +170,7 @@ const TreeNodeFixed = memo(({
             {children.map(child => (
               <div className="td-col" key={child.id}>
                 <div className="td-vbar"/>
-                <TreeNodeFixed
+                <TreeNode
                   node={child} childrenMap={childrenMap} depths={depths}
                   photos={photos} searchQuery={searchQuery}
                   onPhotoClick={onPhotoClick} onAdd={onAdd} onEdit={onEdit} onDelete={onDelete}
@@ -309,34 +241,26 @@ export default function FamilyTreeApp() {
   const isDraggingRef = useRef(false);
   const touchRef = useRef({ pinchDist: null, startZoom: 0.55 });
 
-  // ── OPTIMIZATION: Pre-compute Children Map & Depths ────────────────────────
-  // Menghindari .filter() di dalam render loop
   const { childrenMap, depths, rootNodes } = useMemo(() => {
     const map = {};
     const dMap = {};
     const roots = [];
-    
     const calcDepth = (id, d) => {
       dMap[id] = d;
       const children = map[id] || [];
       children.forEach(c => calcDepth(c.id, d + 1));
     };
-
     members.forEach(m => {
-      if (!m.parentId) {
-        roots.push(m);
-      } else {
+      if (!m.parentId) roots.push(m);
+      else {
         if (!map[m.parentId]) map[m.parentId] = [];
         map[m.parentId].push(m);
       }
     });
-
     roots.forEach(r => calcDepth(r.id, 0));
-
     return { childrenMap: map, depths: dMap, rootNodes: roots };
   }, [members]);
 
-  // ── Touch & Mouse handlers (Sama seperti sebelumnya) ──────────────────────
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
@@ -395,7 +319,6 @@ export default function FamilyTreeApp() {
 
   const handleMouseUp = useCallback(() => { isDraggingRef.current = false; setIsDragging(false); }, []);
 
-  // ── Photo Logic ──────────────────────────────────────────────────────────
   const handlePhotoClick = useCallback((id) => {
     photoTargetIdRef.current = id;
     photoInputRef.current?.click();
@@ -410,7 +333,6 @@ export default function FamilyTreeApp() {
     e.target.value = '';
   }, []);
 
-  // ── CRUD Logic (Fixed) ───────────────────────────────────────────────────
   const openAdd = useCallback((parentId = '') => {
     setEditTarget(null);
     setFormData({ name: '', note: '', spouse: '', parentId });
@@ -425,8 +347,6 @@ export default function FamilyTreeApp() {
 
   const saveMember = useCallback(() => {
     if (!formData.name.trim()) return;
-
-    // PREVENT CIRCULAR DEPENDENCY
     if (formData.parentId) {
       let currentParent = formData.parentId;
       while (currentParent) {
@@ -438,10 +358,8 @@ export default function FamilyTreeApp() {
         currentParent = parentNode ? parentNode.parentId : null;
       }
     }
-
-    if (editTarget) {
-      setMembers(prev => prev.map(m => m.id === editTarget.id ? { ...m, ...formData } : m));
-    } else {
+    if (editTarget) setMembers(prev => prev.map(m => m.id === editTarget.id ? { ...m, ...formData } : m));
+    else {
       const id = 'id_' + Math.random().toString(36).substring(2, 11);
       setMembers(prev => [...prev, { id, ...formData }]);
     }
@@ -455,8 +373,6 @@ export default function FamilyTreeApp() {
 
   const confirmDelete = useCallback(() => {
     if (!deleteTarget) return;
-
-    // CASCADE DELETE: Hapus semua keturunan agar tidak jadi "orphan"
     const getDescendants = (id, list) => {
       let descendants = [];
       const children = list.filter(m => m.parentId === id);
@@ -466,9 +382,7 @@ export default function FamilyTreeApp() {
       });
       return descendants;
     };
-
     const idsToDelete = [deleteTarget.id, ...getDescendants(deleteTarget.id, members)];
-    
     setMembers(prev => prev.filter(m => !idsToDelete.includes(m.id)));
     setPhotos(prev => {
       const n = { ...prev };
@@ -525,7 +439,7 @@ export default function FamilyTreeApp() {
         <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: '0 0', willChange: 'transform', transition: isDragging ? 'none' : 'transform 0.08s ease-out' }}>
           <div className="tree-canvas">
             {rootNodes.map(node => (
-              <TreeNodeFixed key={node.id} node={node} childrenMap={childrenMap} depths={depths} photos={photos} searchQuery={searchQuery} onPhotoClick={handlePhotoClick} onAdd={openAdd} onEdit={openEdit} onDelete={requestDelete} />
+              <TreeNode key={node.id} node={node} childrenMap={childrenMap} depths={depths} photos={photos} searchQuery={searchQuery} onPhotoClick={handlePhotoClick} onAdd={openAdd} onEdit={openEdit} onDelete={requestDelete} />
             ))}
           </div>
         </div>
